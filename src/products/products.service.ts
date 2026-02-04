@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { validate as isUUID } from 'uuid';
+import { User } from '../auth/entities/user.entity';
 import { PaginationDto } from '../common/dtos/pagination.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -25,7 +26,7 @@ export class ProductsService {
     private readonly DataSource: DataSource,
   ) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: User) {
     try {
       const { images = [], ...productDetails } = createProductDto;
       const product = this.ProductsRepository.create({
@@ -33,6 +34,7 @@ export class ProductsService {
         images: images.map((image) =>
           this.ProductImagesRepository.create({ url: image }),
         ),
+        user,
       });
       await this.ProductsRepository.save(product);
       return { ...product, images };
@@ -43,13 +45,22 @@ export class ProductsService {
 
   async findAll(paginationDto: PaginationDto) {
     const { limit = 10, offset = 0 } = paginationDto;
-    const products = await this.ProductsRepository.find({
-      take: limit,
-      skip: offset,
-      relations: {
-        images: true,
-      },
-    });
+    // const products = await this.ProductsRepository.find({
+    //   take: limit,
+    //   skip: offset,          //! OLD WAY TO FETCH RELATIONS
+    //   relations: {
+    //     images: true,
+    //     user: true,
+    //   },
+    // });
+
+    const products = await this.ProductsRepository.createQueryBuilder('prod')
+      .leftJoinAndSelect('prod.images', 'prodImages') //* prodImages is an alias for the joined table
+      .leftJoin('prod.user', 'user')
+      .addSelect(['user.fullName', 'user.email'])
+      .take(limit)
+      .skip(offset)
+      .getMany();
 
     return products.map(({ images, ...product }) => ({
       ...product,
@@ -87,7 +98,7 @@ export class ProductsService {
     return { ...product, images: images?.map((img) => img.url) };
   }
 
-  async update(id: string, updateProductDto: UpdateProductDto) {
+  async update(id: string, updateProductDto: UpdateProductDto, user: User) {
     const { images, ...toUpdate } = updateProductDto;
 
     const product = await this.ProductsRepository.preload({
@@ -111,6 +122,7 @@ export class ProductsService {
         );
       }
 
+      product.user = user;
       await queryRunner.manager.save(product);
       await queryRunner.commitTransaction();
       await queryRunner.release();

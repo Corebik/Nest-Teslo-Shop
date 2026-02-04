@@ -10,4 +10,8 @@ export const EnvConfiguration = () => ({
   dbName: process.env.DB_NAME,
   dbUsername: process.env.DB_USERNAME,
   dbPassword: process.env.DB_PASSWORD,
+
+  // JWT variables
+  jwtSecret: process.env.JWT_SECRET,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN,
 });

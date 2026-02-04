@@ -11,6 +11,8 @@ import { JoiValidationSchema } from './config/joi.config';
 import { FilesModule } from './files/files.module';
 import { ProductsModule } from './products/products.module';
 import { SeedModule } from './seed/seed.module';
+import { AuthModule } from './auth/auth.module';
+import { MessagesWsModule } from './messages-ws/messages-ws.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { SeedModule } from './seed/seed.module';
     CommonModule,
     SeedModule,
     FilesModule,
+    AuthModule,
+    MessagesWsModule,
   ],
 })
 export class AppModule {}
